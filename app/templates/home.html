@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+            margin-bottom: 16px;
+        }
+        .btn {
+            display: inline-block;
+            background: #1d4ed8;
+            color: #fff;
+            padding: 9px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .btn:hover {
+            background: #1e40af;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .ticket {
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
+        .ticket p {
+            margin: 6px 0;
+        }
+        .actions a {
+            margin-right: 12px;
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        .actions a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <div class="header">
+    <h1>Home</h1>
+
+    <p>Email: {{ current_user.email }}</p>
+    <p>Role: {{ current_user.role }}</p>
+
+    <p>
+        <a class="btn" href="/tickets/create">Create ticket</a>
+        <a class="btn" href="/logout">Logout</a>
+    </p>
+    </div>
+
+    <h2>All tickets</h2>
+    <ul>
+        {% for ticket in tickets %}
+            <li class="ticket">
+                <p>Title: {{ ticket.title }}</p>
+                <p>Description: {{ ticket.description|safe }}</p>
+                <p>Severity: {{ ticket.severity }}</p>
+                <p>Status: {{ ticket.status }}</p>
+                <p>Owner ID: {{ ticket.owner_id.id }}</p>
+                <p class="actions"><a href="/tickets/{{ ticket.id }}">View ticket</a><a href="/tickets/{{ ticket.id }}/edit">Edit ticket</a></p>
+            </li>
+        {% endfor %}
+    </ul>
+    </div>
+</body>
+</html>

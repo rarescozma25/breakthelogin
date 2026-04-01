@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Ticket</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+            color: #1f2937;
+        }
+        .card {
+            max-width: 560px;
+            margin: 20px auto;
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        }
+        form {
+            display: grid;
+            gap: 10px;
+        }
+        label {
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        input, textarea, select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #c9d5e5;
+            border-radius: 8px;
+            font: inherit;
+            background: #fff;
+        }
+        button {
+            margin-top: 8px;
+            border: 0;
+            border-radius: 8px;
+            background: #1d4ed8;
+            color: #fff;
+            padding: 10px 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1e40af;
+        }
+        .error {
+            color: #b91c1c;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        a {
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+    <h1>Edit Ticket</h1>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" action="/tickets/{{ ticket.id }}/edit">
+        {% csrf_token %}
+
+        <label for="title">Title</label>
+        {{ form.title }}
+
+        <label for="description">Description</label>
+        {{ form.description }}
+
+        <label for="severity">Severity</label>
+        {{ form.severity }}
+
+        <label for="status">Status</label>
+        {{ form.status }}
+
+        <button type="submit">Save</button>
+    </form>
+
+    <p><a href="/tickets/{{ ticket.id }}">Back to ticket</a></p>
+    <p><a href="/home">Back to home</a></p>
+    </div>
+</body>
+</html>

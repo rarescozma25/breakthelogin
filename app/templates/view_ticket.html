@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Ticket</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+            color: #1f2937;
+        }
+        .card {
+            max-width: 700px;
+            margin: 20px auto;
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        }
+        p {
+            margin: 8px 0;
+        }
+        .actions a {
+            margin-right: 12px;
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        .actions a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+    <h1>Ticket Details</h1>
+
+    <p>ID: {{ ticket.id }}</p>
+    <p>Title: {{ ticket.title }}</p>
+    <p>Description: {{ ticket.description|safe }}</p>
+    <p>Severity: {{ ticket.severity }}</p>
+    <p>Status: {{ ticket.status }}</p>
+    <p>Owner ID: {{ ticket.owner_id.id }}</p>
+    <p>Created At: {{ ticket.created_at }}</p>
+    <p>Updated At: {{ ticket.updated_at }}</p>
+
+    <p class="actions"><a href="/tickets/{{ ticket.id }}/edit">Edit ticket</a><a href="/home">Back to home</a></p>
+    </div>
+</body>
+</html>
