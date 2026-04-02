@@ -2,7 +2,7 @@ from django.shortcuts import redirect, render
 
 from .forms import LoginForm, RegisterForm, TicketForm
 from .models import AuditLogs, Tickets, Users
-
+from django.views.decorators.csrf import csrf_exempt
 
 def register_view(request):
 	if request.method == "POST":
@@ -25,8 +25,7 @@ def register_view(request):
 
 	form = RegisterForm()
 	return render(request, "register.html", {"form": form})
-
-
+@csrf_exempt
 def login_view(request):
 	if request.method == "POST":
 		form = LoginForm(request.POST)
