@@ -1,4 +1,5 @@
 import re
+import bcrypt
 
 from django.shortcuts import redirect, render
 
@@ -6,6 +7,12 @@ from .forms import LoginForm, RegisterForm, TicketForm
 from .models import AuditLogs, Tickets, Users
 #import csrf_exempt for testing purposes only, do not use in production
 from django.views.decorators.csrf import csrf_exempt
+
+
+def hash_password(password):
+	salt = bcrypt.gensalt() # salt for hashing
+	hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+	return hashed.decode('utf-8')
 
 
 def is_strong_password(password):
@@ -47,10 +54,11 @@ def register_view(request):
 
 		if Users.objects.filter(email=email).exists():
 			return render(request, "register.html", {"form": form, "error": "User already exists"})
-
+		# hash password
+		hashed_password = hash_password(password)
 		Users.objects.create(
 			email=email,
-			password_hash=password,
+			password_hash=hashed_password,
 			role=Users.ROLE_ANALYST,
 		)
 		return redirect("login")
@@ -74,7 +82,7 @@ def login_view(request):
 		except Users.DoesNotExist:
 			return render(request, "login.html", {"form": form, "error": "User does not exist"})
 
-		if user.password_hash != password:
+		if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
 			return render(request, "login.html", {"form": form, "error": "Wrong password"})
 
 		request.session["user_id"] = user.id
@@ -116,7 +124,8 @@ def forgot_password_view(request):
 							"error": error,
 						},
 					)
-				user.password_hash = new_password
+				hashed_password = hash_password(new_password)
+				user.password_hash = hashed_password
 				user.save()
 				return redirect("login")
 			else:
