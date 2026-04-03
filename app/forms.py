@@ -5,7 +5,7 @@ from .models import Tickets
 
 class RegisterForm(forms.Form):
 	email = forms.CharField(max_length=255)
-	password = forms.CharField(max_length=255, widget=forms.PasswordInput)
+	password = forms.CharField(max_length=255, widget=forms.TextInput)
 
 
 class LoginForm(forms.Form):

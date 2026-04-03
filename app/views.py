@@ -1,9 +1,31 @@
+import re
+
 from django.shortcuts import redirect, render
 
 from .forms import LoginForm, RegisterForm, TicketForm
 from .models import AuditLogs, Tickets, Users
+#import csrf_exempt for testing purposes only, do not use in production
+from django.views.decorators.csrf import csrf_exempt
 
 
+def is_strong_password(password):
+
+	if not password or len(password) < 10:
+		return False
+
+
+	if not re.search(r"[A-Z]", password):
+		return False
+	if not re.search(r"[a-z]", password):
+		return False
+	if not re.search(r"[0-9]", password):
+		return False
+	if not re.search(r"[^A-Za-z0-9]", password):
+		return False
+
+	return True
+
+@csrf_exempt
 def register_view(request):
 	if request.method == "POST":
 		form = RegisterForm(request.POST)
@@ -12,6 +34,16 @@ def register_view(request):
 
 		email = form.cleaned_data["email"]
 		password = form.cleaned_data["password"]
+
+		if not is_strong_password(password):
+			return render(
+				request,
+				"register.html",
+				{
+					"form": form,
+					"error": "Password must be at least 10 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character.",
+				},
+			)
 
 		if Users.objects.filter(email=email).exists():
 			return render(request, "register.html", {"form": form, "error": "User already exists"})
@@ -26,11 +58,12 @@ def register_view(request):
 	form = RegisterForm()
 	return render(request, "register.html", {"form": form})
 
-
+@csrf_exempt
 def login_view(request):
 	if request.method == "POST":
 		form = LoginForm(request.POST)
 		if not form.is_valid():
+			print(form.errors)
 			return render(request, "login.html", {"error": "Email and password are required"})
 
 		email = form.cleaned_data["email"]
@@ -72,6 +105,17 @@ def forgot_password_view(request):
 		if request.method == "POST":
 			new_password = request.POST.get("new_password", "")
 			if user:
+				if not is_strong_password(new_password):
+					error = "Password must be at least 10 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character."
+					return render(
+						request,
+						"forgot_password.html",
+						{
+							"token": token,
+							"message": message,
+							"error": error,
+						},
+					)
 				user.password_hash = new_password
 				user.save()
 				return redirect("login")
@@ -119,7 +163,10 @@ def home_view(request):
 	except Users.DoesNotExist:
 		return redirect("login")
 
-	tickets = Tickets.objects.all().order_by("-id")
+	if current_user.role == Users.ROLE_MANAGER:
+		tickets = Tickets.objects.all().order_by("-id")
+	else:
+		tickets = Tickets.objects.filter(owner_id=current_user).order_by("-id")
 	return render(
 		request,
 		"home.html",
