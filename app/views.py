@@ -1,5 +1,7 @@
 import re
 import bcrypt
+from datetime import timedelta
+from django.utils import timezone
 
 from django.shortcuts import redirect, render
 
@@ -13,6 +15,13 @@ def hash_password(password):
 	salt = bcrypt.gensalt() # salt for hashing
 	hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
 	return hashed.decode('utf-8')
+
+
+def get_client_ip(request):
+	x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+	if x_forwarded_for:
+		return x_forwarded_for.split(',')[0].strip()
+	return request.META.get('REMOTE_ADDR', 'unknown')
 
 
 def is_strong_password(password):
@@ -68,29 +77,115 @@ def register_view(request):
 
 @csrf_exempt
 def login_view(request):
-	if request.method == "POST":
-		form = LoginForm(request.POST)
-		if not form.is_valid():
-			print(form.errors)
-			return render(request, "login.html", {"error": "Email and password are required"})
+    if request.method == "POST":
+        form = LoginForm(request.POST)
 
-		email = form.cleaned_data["email"]
-		password = form.cleaned_data["password"]
+        if not form.is_valid():
+            return render(request, "login.html", {"error": "Invalid credentials"})
 
-		try:
-			user = Users.objects.get(email=email)
-		except Users.DoesNotExist:
-			return render(request, "login.html", {"form": form, "error": "User does not exist"})
+        email = form.cleaned_data["email"]
+        password = form.cleaned_data["password"]
+        ip_address = get_client_ip(request)
 
-		if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-			return render(request, "login.html", {"form": form, "error": "Wrong password"})
+        try:
+            user = Users.objects.get(email=email)
+        except Users.DoesNotExist:
+            AuditLogs.objects.create(
+                user_id_id=None,
+                action="LOGIN_FAILED_UNKNOWN_USER",
+                resource="auth",
+                resource_id="unknown",
+                ip_address=ip_address,
+            )
+            return render(request, "login.html", {
+                "form": form,
+                "error": "Invalid credentials"
+            })
 
-		request.session["user_id"] = user.id
-		request.session["logged_in"] = True
-		return redirect("home")
+        now = timezone.now()
 
-	form = LoginForm()
-	return render(request, "login.html", {"form": form})
+        # check if account is locked
+        if user.locked:
+            lock_expiry = user.last_failed_login + timedelta(minutes=3)
+
+            if now < lock_expiry:
+                AuditLogs.objects.create(
+                    user_id_id=user.id,
+                    action="LOGIN_FAILED",
+                    resource="auth",
+                    resource_id=str(user.id),
+                    ip_address=ip_address,
+                )
+                remaining_lock_time = int((lock_expiry - now).total_seconds() // 60)
+                return render(request, "login.html", {
+                    "form": form,
+                    "error": f"Your account is locked for {remaining_lock_time} more minutes due to multiple failed login attempts."
+                }, status=429)
+
+            #unlock account after lockout period
+            user.locked = False
+            user.failed_attempts = 0
+            user.last_failed_login = None
+            user.save(update_fields=["locked", "failed_attempts", "last_failed_login"])
+
+        # verify password
+        if not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+            user.failed_attempts += 1
+            user.last_failed_login = now
+
+            if user.failed_attempts >= 5:
+                user.locked = True
+                AuditLogs.objects.create(
+                    user_id_id=user.id,
+                    action="ACCOUNT_LOCKED",
+                    resource="auth",
+                    resource_id=str(user.id),
+                    ip_address=ip_address,
+                )
+                user.save(update_fields=["failed_attempts", "last_failed_login", "locked"])
+
+                return render(request, "login.html", {
+                    "form": form,
+                    "error": "Invalid credentials"
+                }, status=429)
+
+            user.save(update_fields=["failed_attempts", "last_failed_login"])
+
+            AuditLogs.objects.create(
+                user_id_id=user.id,
+                action="LOGIN_FAILED",
+                resource="auth",
+                resource_id=str(user.id),
+                ip_address=ip_address,
+            )
+
+            return render(request, "login.html", {
+                "form": form,
+                "error": "Invalid credentials"
+            })
+
+        # success
+        user.failed_attempts = 0
+        user.last_failed_login = None
+        user.locked = False
+        user.save(update_fields=["failed_attempts", "last_failed_login", "locked"])
+
+        AuditLogs.objects.create(
+            user_id_id=user.id,
+            action="LOGIN_SUCCESS",
+            resource="auth",
+            resource_id=str(user.id),
+            ip_address=ip_address,
+        )
+
+        request.session["user_id"] = user.id
+        request.session["logged_in"] = True
+
+        return redirect("home")
+
+    return render(request, "login.html", {"form": LoginForm()})
+
+
 
 
 def logout_view(request):

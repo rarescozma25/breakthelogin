@@ -15,6 +15,8 @@ class Users(models.Model):
 	role = models.CharField(max_length=20, choices=ROLE_CHOICES)
 	created_at = models.DateTimeField(auto_now_add=True)
 	locked = models.BooleanField(default=False)
+	failed_attempts = models.IntegerField(default=0)
+	last_failed_login = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
 		db_table = "users"
