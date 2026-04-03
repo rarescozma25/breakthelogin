@@ -66,6 +66,7 @@ class AuditLogs(models.Model):
 		on_delete=models.CASCADE, #daca un utilizator este sters, stergem si logurile lui
 		db_column="user_id",
 		related_name="audit_logs",
+  		null=True, blank=True	
 	)
 	action = models.CharField(max_length=100)
 	resource = models.CharField(max_length=100)
