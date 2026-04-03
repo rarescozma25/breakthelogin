@@ -72,6 +72,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'breakthelogin.wsgi.application'
 
 
+#Session settings
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False # Set to True in production when using HTTPS
+SESSION_COOKIE_SAMESITE = 'Strict'
+
+
+SESSION_COOKIE_AGE = 15 * 60
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
