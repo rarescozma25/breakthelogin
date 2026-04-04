@@ -70,6 +70,9 @@
 
     <p>
         <a class="btn" href="/tickets/create">Create ticket</a>
+        {% if current_user.role == "MANAGER" %}
+        <a class="btn" href="/audit-logs">View audit logs</a>
+        {% endif %}
         <a class="btn" href="/logout">Logout</a>
     </p>
     </div>

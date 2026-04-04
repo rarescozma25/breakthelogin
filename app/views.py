@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from django.shortcuts import redirect, render
+from django.http import HttpResponseForbidden
 
 from .forms import LoginForm, RegisterForm, TicketForm
 from .models import AuditLogs, Tickets, Users
@@ -350,7 +351,18 @@ def view_ticket_view(request, id):
 	if not user_id:
 		return redirect("login")
 
-	ticket = Tickets.objects.get(id=id)
+	user = Users.objects.filter(id=user_id).first()
+	if not user:
+		return redirect("login")
+
+	if user.role == Users.ROLE_MANAGER:
+		ticket = Tickets.objects.filter(id=id).first()
+	else:
+		ticket = Tickets.objects.filter(id=id, owner_id_id=user_id).first()
+
+	if not ticket:
+		return HttpResponseForbidden("Forbidden")
+
 	return render(request, "view_ticket.html", {"ticket": ticket})
 
 
@@ -359,7 +371,17 @@ def edit_ticket_view(request, id):
 	if not user_id:
 		return redirect("login")
 
-	ticket = Tickets.objects.get(id=id)
+	user = Users.objects.filter(id=user_id).first()
+	if not user:
+		return redirect("login")
+
+	if user.role == Users.ROLE_MANAGER:
+		ticket = Tickets.objects.filter(id=id).first()
+	else:
+		ticket = Tickets.objects.filter(id=id, owner_id_id=user_id).first()
+
+	if not ticket:
+		return HttpResponseForbidden("Forbidden")
 
 	if request.method == "POST":
 		form = TicketForm(request.POST)
@@ -391,3 +413,26 @@ def edit_ticket_view(request, id):
 		}
 	)
 	return render(request, "edit_ticket.html", {"ticket": ticket, "form": form})
+
+
+def audit_logs_view(request):
+	user_id = request.session.get("user_id")
+	if not user_id:
+		return redirect("login")
+
+	current_user = Users.objects.filter(id=user_id).first()
+	if not current_user:
+		return redirect("login")
+
+	if current_user.role != Users.ROLE_MANAGER:
+		return HttpResponseForbidden("Forbidden")
+
+	logs = AuditLogs.objects.select_related("user_id").order_by("-timestamp")
+	return render(
+		request,
+		"audit_logs.html",
+		{
+			"current_user": current_user,
+			"logs": logs,
+		},
+	)

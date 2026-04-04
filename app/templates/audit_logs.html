@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audit Logs</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+            margin-bottom: 16px;
+        }
+        .btn {
+            display: inline-block;
+            background: #1d4ed8;
+            color: #fff;
+            padding: 9px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .btn:hover {
+            background: #1e40af;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
+        th, td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e8eef8;
+        }
+        th {
+            background: #eef4ff;
+        }
+        tr:last-child td {
+            border-bottom: 0;
+        }
+        .empty {
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Audit Logs</h1>
+            <p>Manager: {{ current_user.email }}</p>
+            <p>
+                <a class="btn" href="/home">Back to home</a>
+                <a class="btn" href="/logout">Logout</a>
+            </p>
+        </div>
+
+        {% if logs %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User ID</th>
+                    <th>Action</th>
+                    <th>Resource</th>
+                    <th>Resource ID</th>
+                    <th>Timestamp</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.id }}</td>
+                    <td>{% if log.user_id %}{{ log.user_id.id }}{% else %}N/A{% endif %}</td>
+                    <td>{{ log.action }}</td>
+                    <td>{{ log.resource }}</td>
+                    <td>{{ log.resource_id }}</td>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.ip_address }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No audit logs found.</div>
+        {% endif %}
+    </div>
+</body>
+</html>
