@@ -13,6 +13,9 @@ from .models import AuditLogs, Tickets, Users
 from django.views.decorators.csrf import csrf_exempt
 
 
+DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"dummy_password_value", bcrypt.gensalt()).decode("utf-8")
+
+
 def hash_password(password):
 	salt = bcrypt.gensalt() # salt for hashing
 	hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
@@ -92,6 +95,8 @@ def login_view(request):
 		try:
 			user = Users.objects.get(email=email)
 		except Users.DoesNotExist:
+			# perform dummy password check to mitigate timing attacks for non-existent users
+			bcrypt.checkpw(password.encode(), DUMMY_PASSWORD_HASH.encode())
 			AuditLogs.objects.create(
 				user_id_id=None,
 				action="LOGIN_FAILED_UNKNOWN_USER",
@@ -111,6 +116,8 @@ def login_view(request):
 			lock_expiry = user.last_failed_login + timedelta(minutes=3)
 
 			if now < lock_expiry:
+				# perform dummy password check to mitigate timing attacks
+				bcrypt.checkpw(password.encode(), DUMMY_PASSWORD_HASH.encode())
 				AuditLogs.objects.create(
 					user_id_id=user.id,
 					action="LOGIN_FAILED",
