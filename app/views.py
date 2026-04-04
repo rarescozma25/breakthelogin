@@ -1,4 +1,5 @@
 import re
+import secrets
 import bcrypt
 from datetime import timedelta
 from django.utils import timezone
@@ -75,7 +76,7 @@ def register_view(request):
 	form = RegisterForm()
 	return render(request, "register.html", {"form": form})
 
-#@csrf_exempt
+@csrf_exempt
 def login_view(request):
 	if request.method == "POST":
 		form = LoginForm(request.POST)
@@ -203,32 +204,50 @@ def forgot_password_view(request):
 	token = request.GET.get("token", "")
 
 	if token:
+		user = Users.objects.filter(reset_token=token).first()
+		now = timezone.now()
+
+		#reject token if expired or invalid, and clear it from the database if expired to prevent reuse
+		if not user or not user.reset_token_expiry or now > user.reset_token_expiry:
+			if user and user.reset_token_expiry and now > user.reset_token_expiry:
+				user.reset_token = None
+				user.reset_token_expiry = None
+				user.save(update_fields=["reset_token", "reset_token_expiry"])
+			error = "Invalid or expired token"
+			token = ""
+			return render(
+				request,
+				"forgot_password.html",
+				{
+					"token": token,
+					"message": message,
+					"error": error,
+				},
+			)
+
 		message = "Enter a new password for your account"
-		try:
-			user = Users.objects.get(email=token)
-		except Users.DoesNotExist:
-			user = None
 
 		if request.method == "POST":
 			new_password = request.POST.get("new_password", "")
-			if user:
-				if not is_strong_password(new_password):
-					error = "Password must be at least 10 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character."
-					return render(
-						request,
-						"forgot_password.html",
-						{
-							"token": token,
-							"message": message,
-							"error": error,
-						},
-					)
-				hashed_password = hash_password(new_password)
-				user.password_hash = hashed_password
-				user.save()
-				return redirect("login")
-			else:
-				error = "Invalid token"
+			if not is_strong_password(new_password):
+				error = "Password must be at least 10 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character."
+				return render(
+					request,
+					"forgot_password.html",
+					{
+						"token": token,
+						"message": message,
+						"error": error,
+					},
+				)
+
+			#invalidate the token immediately after use to prevent reuse
+			hashed_password = hash_password(new_password)
+			user.password_hash = hashed_password
+			user.reset_token = None
+			user.reset_token_expiry = None
+			user.save(update_fields=["password_hash", "reset_token", "reset_token_expiry"])
+			return redirect("login")
 
 		return render(
 			request,
@@ -243,11 +262,15 @@ def forgot_password_view(request):
 	if request.method == "POST":
 		email = request.POST.get("email", "")
 		try:
-			Users.objects.get(email=email)
+			user = Users.objects.get(email=email)
 		except Users.DoesNotExist:
-			error = "User not found"
+			error = "Invalid email address"
 		else:
-			token = email
+			#generate a token for reset
+			token = secrets.token_urlsafe(32)
+			user.reset_token = token
+			user.reset_token_expiry = timezone.now() + timedelta(minutes=15)
+			user.save(update_fields=["reset_token", "reset_token_expiry"])
 			return redirect(f"/forgot-password?token={token}")
 
 	return render(

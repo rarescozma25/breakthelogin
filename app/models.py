@@ -17,6 +17,8 @@ class Users(models.Model):
 	locked = models.BooleanField(default=False)
 	failed_attempts = models.IntegerField(default=0)
 	last_failed_login = models.DateTimeField(null=True, blank=True)
+	reset_token = models.CharField(max_length=128, null=True, blank=True)
+	reset_token_expiry = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
 		db_table = "users"
