@@ -73,7 +73,7 @@ WSGI_APPLICATION = 'breakthelogin.wsgi.application'
 
 
 #Session settings
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = True #HTTP Only
 SESSION_COOKIE_SECURE = False # Set to True in production when using HTTPS
 SESSION_COOKIE_SAMESITE = 'Strict'
 
